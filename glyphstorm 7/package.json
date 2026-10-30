@@ -1,0 +1,25 @@
+{
+  "name": "glyphstorm",
+  "version": "1.10.0",
+  "private": true,
+  "type": "module",
+  "description": "A real-time multiplayer crystal-and-word arena for 2\u20138 players.",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "start": "node server/index.mjs",
+    "dev": "node --watch server/index.mjs",
+    "test": "node --test test/*.test.mjs",
+    "check": "node --check server/index.mjs && node --check server/game.mjs && node --check public/app.js && node --check public/arena.js && node --check public/fleet.js && node --check public/ship-sprites.js && node --check public/aim.js && node --check public/match-feedback.js && node --check public/asteroids.js && node --check public/objectives.js && node --check public/defense.js && node --check public/planet.js && node --check public/power-ups.js && node --check public/neon.js && node --check server/word-guide.mjs && node --check public/word-guide.js && node --check public/practice.js && node --check public/signals.js && node --check public/word-energy.js && node --check public/compact-hud.js && node --check server/word-index.mjs && node --check server/letter-supply.mjs && node --check public/tray-controls.js"
+  },
+  "dependencies": {
+    "express": "5.3.0",
+    "socket.io": "4.8.4",
+    "word-list": "4.1.0",
+    "bad-words": "4.1.5"
+  },
+  "devDependencies": {
+    "socket.io-client": "4.8.4"
+  }
+}

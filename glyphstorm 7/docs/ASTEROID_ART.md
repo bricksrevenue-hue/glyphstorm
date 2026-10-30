@@ -1,0 +1,7 @@
+# Asteroid artwork provenance
+
+Generated for Glyphstorm using the built-in image generation tool (transparent background). Output was copied unchanged to public/assets/asteroids/rock-v15.png. The browser decodes it once into a 384-pixel Canvas cache; no separate image-editing service was used. Earth is drawn in code in public/planet.js.
+
+Final generation prompt:
+
+Use case: stylized-concept. Asset type: transparent game sprite for Glyphstorm, a top-down HTML5 Canvas space arena. Primary request: one highly realistic irregular rocky asteroid, an isolated complete object, three-quarter orthographic view, no perspective background. Pitted charcoal-grey and warm mineral stone, deep impact craters, chipped ridges, layered fractured geology, rough granular regolith, tiny mineral flecks. Physically believable 3D volume with soft neutral sunlight from upper left, readable half shadows and subtle cool fill light. Silhouette roughly round but asymmetrical, compact with no protrusions, fills about 86 percent of a square canvas, perfectly centered and entirely inside the image. Medium dark stone with enough bright edge definition to read on a very dark space arena. This is a single floating rock, not a planet. No fiery effects, glow, rings, typography, symbols, letters, numbers, labels, UI, watermark, cast ground shadow, starfield or additional objects. Actual transparent alpha around the object. High fidelity game-ready material detail.
