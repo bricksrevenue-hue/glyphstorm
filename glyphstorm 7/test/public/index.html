@@ -1,0 +1,223 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#080d19">
+  <meta name="description" content="Open crystals and bonus asteroids. Collect letters, then arrange their tiles. Outspell the galaxy. A multiplayer word arena for 2–8 friends.">
+  <title>Glyphstorm — Outspell the galaxy</title>
+  <link rel="icon" href="/icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/style.css?v=1.10.0-ux1">
+  <script src="/socket.io/socket.io.js" defer></script>
+  <script src="/app.js?v=1.10.0-ux1" type="module"></script>
+</head>
+<body>
+  <canvas id="space" aria-hidden="true"></canvas>
+  <header class="topbar">
+    <a class="brand" href="/" aria-label="Glyphstorm home"><span class="brand-mark">G</span><span>GLYPHSTORM<span class="brand-sub">THE WORD ARENA</span></span></a>
+    <div class="top-actions">
+      <span id="connection" class="status"><i></i>Connecting</span>
+      <button id="helpButton" class="text-button">How to play</button>
+      <button id="soundButton" class="icon-button" aria-label="Enable sound" title="Enable sound">♪ <span>Off</span></button>
+      <button id="motionButton" class="icon-button" aria-label="Enable reduced motion" title="Reduce motion">◌</button>
+    </div>
+  </header>
+  <main>
+    <section id="home" class="home view">
+      <div class="hero-copy">
+        <div class="eyebrow"><span class="spark"></span> 2–8 PLAYERS · ONE SHARED UNIVERSE</div>
+        <h1>OUTSPELL<br>THE <em>GALAXY.</em></h1>
+        <p class="hero-description">A little cosmic chaos.<br>A lot of clever words.</p>
+        <p class="hero-detail">Boost through the asteroid field. Chase meteor showers.<br>Protect Earth together. Spell words to repair it.<br>Keep it alive until time runs out—then the highest word score wins.</p>
+        <div class="hero-tags"><span>✦ Live multiplayer</span><span>⌁ Phones & laptops</span><span>↗ No sign-up</span></div>
+        <button id="practiceButton" class="button secondary practice-launch" type="button">First flight · learn to spell ↗</button>
+        <p class="practice-intro">Three guided steps: fly, pulse and collect, then spell CAT to repair Earth.</p>
+      </div>
+      <div class="entry-card panel">
+        <div class="card-kicker">YOUR NEXT ROUND STARTS HERE</div>
+        <h2>Ready, word pilot?</h2>
+        <label for="pilotName">PILOT NAME</label>
+        <input id="pilotName" maxlength="18" autocomplete="nickname" placeholder="What should we call you?" aria-describedby="nameHint">
+        <small id="nameHint">A friendly name. No account needed.</small>
+        <button id="createButton" class="button primary">Create a room <span>↗</span></button>
+        <div class="divider"><span>or join your crew</span></div>
+        <label for="roomCode">ROOM CODE</label>
+        <div class="join-row"><input id="roomCode" maxlength="6" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="ABC123"><button id="joinButton" class="button secondary">Join →</button></div>
+        <p id="homeError" class="error" role="alert"></p>
+        <div class="entry-footer"><span class="tiny-orbit"></span> Your friends. Your room. Your rules.</div>
+      </div>
+      <div class="loop-strip">
+        <div><b>01</b><span><strong>OPEN</strong>Crystals & asteroids</span></div>
+        <div><b>02</b><span><strong>COLLECT</strong>Any order · Auto-Best arranges</span></div>
+        <div><b>03</b><span><strong>OUTSPELL</strong>Submit words. Earn points.</span></div>
+      </div>
+      <p class="home-bottom">STEER TO SPELL <span>✦</span> GLYPHSTORM / 1.10.0</p>
+    </section>
+
+    <section id="lobby" class="view lobby hidden">
+      <div class="section-heading"><div><div class="eyebrow">FLIGHT DECK</div><h1>Your crew is assembling.</h1><p>Invite a friend, choose your rules, and ready up.</p></div><button class="text-button leave-button">Leave room ↗</button></div>
+      <section class="mission-brief panel" aria-labelledby="briefTitle">
+        <div id="briefLabel" class="eyebrow">YOUR MISSION</div>
+        <h2 id="briefTitle">Protect Earth together. Compete with words.</h2>
+        <p id="briefIntro"></p>
+        <ol id="briefSteps" class="mission-steps"></ol>
+        <p id="briefWin" class="mission-win"></p>
+        <p id="briefLoss" class="mission-loss"></p>
+      </section>
+      <div class="lobby-grid">
+        <div class="panel crew-panel">
+          <div class="room-banner"><div><span class="label">ROOM CODE</span><strong id="lobbyCode"></strong></div><div><button id="copyCode" class="button small secondary">Copy code</button><button id="copyLink" class="text-button">Copy invite link ↗</button></div></div>
+          <div class="panel-title"><h2>The crew</h2><span id="playerCount" class="badge"></span></div>
+          <div id="roster"></div>
+          <div id="spectatorList" class="muted"></div>
+          <section id="shipPicker" class="ship-picker hidden" aria-labelledby="shipPickerTitle" aria-describedby="shipHelp">
+            <div class="ship-heading"><h3 id="shipPickerTitle">Choose your ship</h3><span id="selectedShipName" class="mint" aria-live="polite">Dart</span></div>
+            <div id="shipChoices" class="ship-choices" role="group" aria-label="Spaceship designs"></div>
+            <p id="shipHelp" class="ship-help">All ships fly and collect alike. Your <span id="pilotMarker" aria-hidden="true">◉</span> green marker identifies you. Ship names and team labels identify the other pilots. Choose before readying up.</p>
+          </section>
+          <div id="teamActions" class="team-actions hidden"><span>YOUR TEAM</span><button id="team0" class="button small secondary">Aurora</button><button id="team1" class="button small secondary">Nebula</button></div>
+          <div class="lobby-bottom"><button id="readyButton" class="button primary">Ready up ✓</button><button id="claimButton" class="button primary hidden">Claim a pilot seat</button><button id="startButton" class="button secondary hidden">Launch round →</button></div>
+          <p id="lobbyHint" class="muted"></p>
+        </div>
+        <div class="lobby-side">
+          <div class="panel settings-panel"><div class="panel-title"><h2>Round settings</h2><span id="hostBadge" class="badge">HOST CONTROLS</span></div>
+            <label for="modeSelect">GAME MODE</label><select id="modeSelect"><option value="ffa">Free-for-all</option><option value="teams">Two teams</option></select>
+            <label for="durationSelect">ROUND LENGTH</label><select id="durationSelect"><option value="3">3 minutes · quick orbit</option><option value="5" selected>5 minutes · classic</option><option value="7">7 minutes · deep space</option></select>
+            <label class="toggle-line" for="defenseToggle"><span><strong>Planetary defense</strong><small>Protect Earth together. Words repair it.<br>Zero integrity ends the round for everyone.</small></span><input type="checkbox" id="defenseToggle" checked></label>
+            <label class="toggle-line" for="disruptionToggle"><span><strong>Player disruption</strong><small>Rival pulses can reset your ship.<br>Friendly fire is always off.</small></span><input type="checkbox" id="disruptionToggle"></label>
+          </div>
+          <div class="panel flight-manual"><div class="eyebrow">FIRST FLIGHT</div><p>Fly → pulse & collect → spell.<br>Learn one action at a time in a safe practice arena.</p><button id="lobbyPracticeButton" class="button secondary" type="button">Replay First Flight</button></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="game" class="view game hidden">
+      <div class="game-top"><div><span id="gameMode" class="badge"></span><span id="gameRoom" class="muted"></span></div><div id="clock" class="clock">5:00</div><button class="text-button leave-button">Leave ↗</button></div>
+      <div class="mission-ribbon" role="group" aria-label="Your mission">
+        <div><strong id="missionGoal">DEFEND EARTH · COLLECT → SPELL → REPAIR</strong><span id="missionReminder">Keep Earth alive until the timer ends.</span></div>
+        <div class="mission-actions"><button id="signalButton" class="button small secondary" type="button" aria-haspopup="dialog">Signal</button><button id="telemetryButton" class="button small secondary compact-only" type="button" aria-haspopup="dialog">Details</button><button id="missionButton" class="button small secondary" type="button">Rules</button></div>
+      </div>
+      <div id="missionStrip" class="mission-strip" aria-label="Live objectives and boost">
+        <div id="defenseStatus" class="defense-status hidden" role="group" aria-label="Planetary defense status">
+          <div><span>EARTH INTEGRITY</span><strong id="earthHealth">100 / 100</strong></div>
+          <meter id="earthMeter" min="0" max="100" low="30" optimum="100" value="100" aria-label="Earth integrity"></meter>
+          <div><span>EARTH SHIELD</span><b id="barrierLevel">5.0 / 25</b></div><small id="defenseHint">Watch the pink letters</small><div id="comboProgress" class="combo-progress"><strong id="comboLabel">0 / 5 words</strong><progress id="comboMeter" max="5" value="0" aria-label="Words toward next arcade power-up"></progress></div>
+        </div>
+        <div id="powerUpCard" class="mission-card power-card hidden" role="group" aria-label="Shared Earth power-up and combo">
+          <span class="mission-label">ARCADE POWER-UP</span><strong id="powerUpName">SPELL 5 WORDS</strong>
+          <b id="powerUpTimer">8-SECOND BONUS</b><small id="powerUpCombo">YOUR COMBO 0 · 5 TO BONUS</small><small id="powerUpHint">Invalid or reused words reset the combo</small>
+        </div>
+        <div id="bountyCard" class="mission-card bounty-card"><span class="mission-label">WORD BOUNTY</span><strong id="bountyWord">GET READY</strong><small id="bountyHint">First to spell wins the bonus</small></div>
+        <div id="meteorCard" class="mission-card meteor-card"><span id="meteorTitle" class="mission-label">METEOR WATCH</span><strong>MORE LETTERS</strong><small id="meteorHint">Watch for incoming waves</small></div>
+        <button id="boostButton" class="boost-button" type="button" aria-label="Boost. Shortcut: Shift."><strong>↗ BOOST</strong><small id="boostLabel">READY · SHIFT</small></button>
+      </div>
+      <div id="arenaWrap" class="arena-wrap">
+
+        <canvas id="arena" aria-label="Shared space arena. Fly using WASD or arrow keys. Aim all around the ship with the mouse, or hold Q and E to rotate left and right. Collect letters, then drag tiles or tap two to swap. Select a range or use the whole tray. Press Enter to submit or Space to review."></canvas>
+        <div id="earthThreatWarning" class="earth-threat-warning hidden" role="status" aria-live="polite" aria-atomic="true"></div>
+        <div id="pilotHud" class="pilot-hud"><div id="scoreboard" class="scoreboard"></div>
+        <div id="raceStatus" class="race-status"><span id="raceLabel">YOUR SCORE</span><strong id="raceNumber">0</strong><small id="raceGap">Score the opening word</small></div><div id="wordFeed" class="word-feed" aria-label="Recent words"></div></div>
+        <div id="arenaAnnouncement" class="arena-announcement hidden" role="status" aria-live="polite"></div>
+        <div id="wordBurst" class="word-burst hidden" role="status" aria-live="polite" aria-atomic="true"><span id="burstTitle"></span><strong id="burstWord"></strong><b id="burstPoints"></b><small id="burstRepair"></small></div>
+        <div id="signalFeed" class="signal-feed" role="status" aria-live="polite" aria-atomic="true"></div>
+        
+        <canvas id="minimap" width="180" height="120" aria-label="Arena minimap"></canvas>
+        <div class="arena-caption"><span class="live-dot"></span> SHARED ORBIT <span class="rotation-hint">Q / E · ROTATE 360°</span> <span id="latency"></span></div>
+        <div id="phaseOverlay" class="phase-overlay hidden"><span id="overlayLabel"></span><strong id="overlayValue"></strong><p id="overlayHint"></p></div>
+        <div id="spectatorBar" class="spectator-bar hidden"><span>WATCHING THIS ROUND</span><select id="followSelect" aria-label="Choose pilot to follow"></select><small>A pilot seat can be claimed in the next lobby.</small></div>
+        <div id="leftStick" class="touch-stick left" aria-label="Movement control"><span></span><b>MOVE</b></div>
+        <div id="rightStick" class="touch-stick right" aria-label="Aim and pulse control"><span></span><b>360° AIM / PULSE</b></div>
+        <div id="connectionOverlay" class="connection-overlay hidden"><strong>Reconnecting to your orbit…</strong><span>Your seat is reserved for up to 30 seconds. The round continues.</span></div>
+      </div>
+      <section id="trayDock" class="tray-dock collection-board" aria-labelledby="collectionTitle" aria-describedby="trayHint">
+      <div id="wordPanel" class="word-panel panel hidden" aria-label="Review collected word">
+        <div class="panel-title"><div><div class="eyebrow">MAKE YOUR NEXT MOVE</div><h2>Arrange. Select. Submit.</h2></div><button id="closeWord" class="icon-button" aria-label="Resume flying">×</button></div>
+        <p id="wordProtection" class="word-shield-timer"></p>
+        <div id="wordLetters" class="word-letters" aria-live="polite"></div>
+        <div class="word-tools"><span id="wordScore">3–10 letters</span><button id="backspaceButton" class="button auto-best" type="button">Shorter word / Auto-Best</button><button id="clearWord" class="text-button">Use all</button></div>
+        <span id="bestWordHint" class="best-word-hint"></span><button id="discardButton" class="text-button" type="button">Choose a letter to discard</button>
+        <p id="wordMissionReward" class="word-mission-reward hidden">A valid new word repairs Earth by 2 HP (up to 100) and grows its shield.</p>
+        <button id="submitButton" class="button primary">Submit word <kbd>Enter</kbd></button>
+        <p id="wordError" class="error" role="alert"></p>
+        <small>Drag tiles or tap two to swap. Select range → tap its start and end. Use all submits the whole tray. Unused tiles stay. Shorter word arranges and selects the longest available word.</small>
+      </div>
+        <div class="tray-header"><div><h2 id="collectionTitle">LETTER COLLECTION</h2><span id="trayCount" class="badge">0 / 10</span></div><div class="collection-protection"><span id="stability" class="stability"></span><span id="shieldStatus" class="muted"></span></div></div>
+        <div class="collection-readout">
+          <div class="collection-word-line"><span id="collectionLabel" class="collection-caption">YOUR COLLECTED WORD</span><strong id="collectionWord" class="is-empty">Fly into letters to begin</strong><span id="collectionRemainder" class="collection-remainder hidden"></span></div>
+          <span id="collectionStatus" class="collection-status">Collect 3 more letters</span>
+        </div>
+        <div class="tray-arrange-tools"><button id="swapButton" class="text-button" type="button" aria-pressed="true">Swap tiles</button><button id="rangeButton" class="text-button" type="button" aria-pressed="false">Select range</button><button id="shuffleButton" class="text-button" type="button">Shuffle · R</button><button id="smartDiscardButton" class="text-button" type="button">Smart discard</button></div>
+        <div class="smart-tray-bar"><div id="ghostPreview" class="ghost-preview" role="status" aria-live="polite" aria-atomic="true"><span class="ghost-caption">WORD PREVIEW</span><strong id="ghostWord">Collect letters to reveal a word</strong><small id="ghostHint">Longest available word · preview only</small></div><button id="autoBestButton" class="button auto-best" type="button" disabled>✦ Auto-Best</button></div>
+        <div class="tray-main"><div id="tray" class="tray" role="group" aria-label="Ten rearrangeable letter slots"></div><div class="tray-actions"><button id="buildButton" class="button primary" type="button">Submit word</button><button id="reviewButton" class="text-button" type="button">Review / shorter word</button><button id="discardLastButton" class="text-button" type="button">Discard last</button></div></div>
+        <div class="tray-footer"><span id="trayHint">Drag tiles to arrange. On phones, tap two tiles to swap.</span><span id="lastWord"></span></div>
+        <p id="trayError" class="error" role="alert"></p><p id="stuckNudge" class="stuck-nudge" role="status"></p><div id="guidedTip" class="guided-tip hidden"><span id="guidedTipText"></span><button id="dismissTip" class="text-button" type="button" aria-label="Dismiss first-round tips">Got it ×</button></div>
+        <p id="collectionAnnouncement" class="visually-hidden" role="status" aria-live="polite" aria-atomic="true"></p>
+      </section>
+
+    </section>
+
+    <section id="results" class="view results hidden">
+      <div id="resultsOutcome" class="eyebrow">ORBIT COMPLETE</div><h1 id="winnerTitle">A stellar round.</h1><p id="winnerSubtitle" class="muted"></p>
+      <div class="panel results-panel"><div class="panel-title"><h2>Final standings</h2><span id="resultsMode" class="badge"></span></div><div id="resultsTable"></div></div>
+      <div class="panel result-words"><div class="panel-title"><h2>Your word constellation</h2><span id="resultWordCount" class="badge"></span></div><div id="resultWords"></div></div>
+      <div class="result-actions"><button id="rematchButton" class="button primary">Back to lobby ↗</button><span id="rematchHint" class="muted"></span><button class="text-button leave-button">Leave room</button></div>
+    </section>
+  </main>
+  <div id="earthThreatVignette" class="earth-threat-vignette" aria-hidden="true"></div>
+  <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
+  <dialog id="telemetryDialog" class="telemetry-dialog" aria-labelledby="telemetryTitle">
+    <button id="closeTelemetry" class="icon-button close-dialog" type="button" aria-label="Close round details">×</button>
+    <h2 id="telemetryTitle">Round details</h2><p class="dialog-live-note">The round keeps moving. Close to resume flying.</p>
+    <div id="telemetryObjectives" class="telemetry-objectives"></div>
+    <h3>Live standings</h3><div id="telemetryScores"></div>
+    <div id="telemetryPreferences" class="telemetry-preferences" aria-label="Sound and motion preferences"></div>
+    <button id="resumeTelemetry" class="button primary" type="button">Resume flying</button>
+  </dialog>
+  <dialog id="signalDialog" class="signal-dialog" aria-labelledby="signalTitle" aria-describedby="signalScope">
+    <button id="closeSignal" class="icon-button close-dialog" type="button" aria-label="Close signals">×</button>
+    <h2 id="signalTitle">Quick signals</h2><p id="signalScope"></p>
+    <div id="letterSignalControls"><label for="signalLetter">Which letter do you need?</label><div class="signal-letter-row"><select id="signalLetter" aria-label="Requested letter"></select><button id="sendLetterSignal" class="button primary" type="button">Request letter</button></div></div>
+    <button id="sendDefendSignal" class="button secondary" type="button">Defend Earth!</button>
+    <p id="signalCooldown" role="status"></p><p class="dialog-live-note">The round keeps moving. Signals last 6 seconds and recharge in 5 seconds. Letter requests mark your current position.</p>
+  </dialog>
+  <dialog id="practiceDialog" class="practice-dialog" aria-labelledby="practiceTitle" aria-describedby="practiceHint">
+    <button id="practiceClose" class="icon-button close-dialog" type="button" aria-label="Close practice">×</button>
+    <div class="eyebrow">FIRST FLIGHT · SAFE SOLO PRACTICE</div><h2 id="practiceTitle">One action at a time.</h2>
+    <ol class="flight-sequence" aria-label="Three First Flight phases">
+      <li data-flight-phase="1"><svg viewBox="0 0 120 48" aria-hidden="true"><path class="flight-path" d="M15 24H100"/><path class="flight-ship" d="M18 15L38 24L18 33L23 24Z"/><path class="flight-crystal" d="M91 12L103 24L91 36L79 24Z"/></svg><span>1 · Fly</span></li>
+      <li data-flight-phase="2"><svg viewBox="0 0 120 48" aria-hidden="true"><path class="flight-ship" d="M10 15L30 24L10 33L15 24Z"/><path class="flight-pulse" d="M38 24H66"/><path class="flight-crystal" d="M80 12L92 24L80 36L68 24Z"/></svg><span>2 · Pulse & collect</span></li>
+      <li data-flight-phase="3"><svg viewBox="0 0 120 48" aria-hidden="true"><text class="flight-word" x="12" y="30">CAT</text><path class="flight-repair" d="M65 24H78"/><circle class="flight-earth" cx="98" cy="24" r="15"/><path class="flight-repair" d="M91 24H105M98 17V31"/></svg><span>3 · Spell & repair</span></li>
+    </ol>
+    <div class="practice-instructions" role="status" aria-live="polite" aria-atomic="true"><strong id="practiceStep"></strong><p id="practiceHint"></p></div>
+    <p id="practiceControls" class="practice-controls">Movement unlocked · pulse and submit locked</p>
+    <div class="practice-stage"><canvas id="practiceCanvas" width="720" height="320" tabindex="0" aria-label="Safe practice arena. Fly to the gold crystal, pulse it, collect C A T, then submit."></canvas>
+      <div id="practiceMove" class="touch-stick left practice-stick" aria-label="Practice movement"><span></span><b>MOVE</b></div>
+      <div id="practiceAim" class="touch-stick right practice-stick" aria-label="Practice aim and pulse"><span></span><b>AIM / PULSE</b></div>
+    </div>
+    <div id="practiceTray" class="practice-tray" role="status" aria-live="polite"></div>
+    <div class="practice-actions"><button id="practiceDiscard" class="button secondary hidden" type="button" disabled>Discard last</button><button id="practiceSubmit" class="button primary" type="button">Submit CAT</button></div>
+    <p id="practiceResult" class="practice-result" role="status"></p>
+    <div class="practice-exit"><button id="practiceSkip" class="text-button" type="button">Skip practice</button><button id="practiceContinue" class="button primary hidden" type="button">Join the game →</button></div>
+  </dialog>
+  <dialog id="helpDialog"><button id="closeHelp" class="icon-button close-dialog" aria-label="Close help">×</button><div class="eyebrow">FLIGHT MANUAL</div><section class="mission-brief mission-help" aria-labelledby="helpMissionTitle">
+        <div id="helpMissionLabel" class="eyebrow">YOUR MISSION</div>
+        <h2 id="helpMissionTitle">Protect Earth together. Compete with words.</h2>
+        <p id="helpMissionIntro"></p>
+        <ol id="helpMissionSteps" class="mission-steps"></ol>
+        <p id="helpMissionWin" class="mission-win"></p>
+        <p id="helpMissionLoss" class="mission-loss"></p>
+      </section>
+    <div class="help-note functional-legend"><strong>Three colors, three jobs</strong><p><span class="legend-safe">◉ Green</span> Your ship, valid words and available pickups. <span class="legend-danger">⚠ Pink</span> Incoming threats, rival pulses and Earth warnings. <span class="legend-objective">◆ Gold</span> Unopened crystals, asteroid labels, map blips and signals. Double outlines mark useful pickups; dashed rings mark low usefulness; WAIT marks reserved letters. Ship names and team labels still identify pilots.</p><p>Dashed pink arrows point from off-screen threats toward Earth’s shield. The red edge warning means Earth is below 30% integrity or a threat is close to its shield. Reduce motion makes this warning steady.</p></div>
+    <div class="help-note"><strong>Quick signals & compact screens</strong><p>Tap Signal to ask teammates for a letter or call for Earth defense. Team signals are visible only to your team. In free-for-all, Defend Earth is shared with all pilots; letter requests are disabled. Gold squares on the minimap mark the signal location. Signals expire after 6 seconds and have a 5-second cooldown. They do not transfer letters.</p><p>On compact screens, tap Details for bounties, meteor timers, power-ups, standings, sound and motion preferences. Earth health, boost, your score and the collection board stay on the main screen. Opening Details or Signals stops your controls, but the live round continues and your ship remains vulnerable.</p><p>Scoring a word sends decorative letter energy toward Earth. Your score banner reports the actual HP repaired and shield growth after their caps. Reduced motion replaces the flight with a stationary shield highlight.</p></div>
+    <div class="help-note"><strong>New pilot? Start with one word.</strong><p>First Flight teaches moving to a gold crystal, pulsing it, collecting C/A/T, and spelling CAT to repair a practice Earth. Each step unlocks only the controls you need. You can skip it. During a match, optional guided tips explain collection, rearranging and submission. Suggested words and outlined NEXT markers help you find a letter; you can always spell your own word. PULSE markers identify unopened crystals; COLLECT markers identify released letters. Guidance never changes collision pickups.</p><p>The collection board explains when pickup is blocked by a full tray, review, temporary protection or another pilot’s brief priority. Tap × or press Esc to leave review; the world keeps moving while you review.</p></div><ol><li><strong>Open & steer.</strong> Aim light pulses at crystals for one letter, or hit an amber asteroid three times to release four letters (including at least one vowel). Gold dots on the minimap mark asteroids. Touch released letters with your ship, then arrange the tray to spell a word. The pilot landing the final pulse and their teammates get 2-second collection priority. Asteroids gently push ships aside without resetting them; only words earn points.</li><li><strong>Spell & score.</strong> Carry up to 10 letters. Drag tiles on desktop, or tap two tiles to swap on any device. Select range lets you tap a start and end tile; Use all clears the range. The current full tray or selected contiguous range is the submitted word. Unused tiles stay. Green Valid shows the word's points; invalid submissions are disabled. Review shows the highest-scoring Best word. Auto-Best (also labeled Shorter word in review) arranges and selects the longest unused valid word from your tiles. The translucent preview is advice only; press Submit to score. Every word must have 3–10 letters and scores once per pilot per match. Discard any tile with its ×, or select it and press Backspace/Delete. With no tile selected, Backspace discards the last tile. Long-press reveals × on touchscreens. Discard last and Choose a letter to discard remain available. Discards share a one-second cooldown. Shuffle / R is free with a three-second cooldown.</li><li><strong>Find your moment.</strong> Word review stops your ship and gives up to 8 seconds of protection. Submitting, canceling, or timing out ends it; the cooldown is 15 seconds. You cannot collect or pulse while protected.</li><li><strong>Outspell your crew.</strong> Highest score when the clock ends wins, provided Earth survives when Planetary defense is enabled. A word scores once per player per match. Teams add their players' points. Ties share the win.</li></ol>
+    <div class="help-note"><strong>Planetary defense · survive together, compete in words</strong><p>Earth sits at the center of the shared arena. Follow the cyan arrow or minimap ring to find it. Pink incoming letters approach in waves from 12 seconds into the round, then every 8 seconds. Fly into them to collect, then arrange their tiles, or hit them with one pulse to halt their descent and turn them into regular letters. Pulse-stopped letters use the usual 2-second pickup priority.</p><p>Each incoming letter touching the shield is removed and costs Earth 5 HP unless Violet Guard is active. Every valid word repairs 2 HP (maximum 100) and adds half its letter count to shield thickness (maximum 25). Thickness grows the visible shield; ordinary breaches still cost 5 HP. Ordinary crystal, asteroid and dropped letters stay harmless and keep their existing behavior. Ships and pulses can pass over Earth.</p><p>If Earth reaches zero, the round ends for everyone with no winner; earned scores remain visible. Keep it alive until the timer ends to decide the winner by word score. Host can turn Planetary defense off in the lobby for the original timed rules.</p></div>
+    <div class="help-note"><strong>Arcade power-ups · spell five valid words in a row</strong><p>In Planetary defense, every fifth consecutive valid word activates a random power-up for 8 seconds. Teammates share a combo; free-for-all pilots build their own. An invalid or already-used word resets that combo. Review, discarding and ship resets do not break it. Power-ups benefit the shared Earth for everyone, including opposing teams. A new milestone replaces the current effect and starts a fresh 8 seconds.</p><p><strong>Violet Guard:</strong> Earth’s shield glows violet. Incoming letters touching it disappear without damaging Earth. This protects Earth, not individual ships.</p><p><strong>EMP Blast:</strong> all incoming letters stop and become safe pickups, including new waves arriving during the 8 seconds. They keep their positions and are immediately available to everyone. No points are awarded.</p><p><strong>Slow Motion:</strong> incoming letters move at 40% of normal speed. Ships, pulses, crystals, asteroids and the match clock keep their normal speed. The original letter speed returns when the effect ends.</p><p>The visible progress meter shows words toward the next power-up. The arcade panel shows your active effect and countdown. Defense-off rounds keep classic scoring without Earth power-ups. Reduced motion stops the moving grid and particles.</p></div>
+    <div class="help-note"><strong>Letter assistance & asteroid rewards</strong><p><span class="legend-letter useful">A</span> Bright double outline: adds a new available word or matches your next suggestion. <span class="legend-letter neutral">B</span> Single outline: neutral. <span class="legend-letter dim">Z</span> Dim dashed outline: no immediate valid word with the current letters. Extra tiles never invalidate words you can select from a subset. A small dotted ring marks the gentle magnet: within 72px, the nearest useful released letter drifts toward an eligible ship at 42px/second. Incoming threats retain their normal paths.</p><p>Letters use weighted tile frequencies with a 35–40% vowel target across crystals and released letters. Nearby supply favors vowels below two tray vowels and consonants above four. Only distant unopened crystals may be adjusted to restore the field balance; your collected letters never change.</p><p>When stuck, Smart discard suggests the tile that preserves the most words, then makes the best room for a recovery vowel. Removing a tile cannot create an anagram by itself. After 20 seconds without a pickup or valid submission, a recovery vowel is offered, at most once per 45 seconds. If your tray is full it waits until you discard or submit; no collected tile is silently deleted. Review, resets and disconnection defer automatic delivery.</p><p>Asteroid labels reveal their reward: mostly letters; sometimes an extra vowel, a ★ double-score tile, or a word-shield recharge. A used ★ doubles the word's normal score once; multiple stars do not stack. The +20 bounty remains +20. Stars left outside the submitted range stay in your tray. Shield recharge makes your personal word shield ready, or banks one recharge if it is already active. Rock hits and letter pickup priority are unchanged.</p></div>
+    <div class="help-note"><strong>Boost, meteor showers & word bounties</strong><p>Press Shift or tap BOOST for a short dash in your movement direction; when stationary, it follows your ship’s heading. Boost recharges in 6 seconds and gives no protection. It is unavailable during word review, resets or spawn protection.</p><p>Starting 30 seconds into the round, a 14-second meteor shower arrives every minute. Four faster cyan-marked rocks take 4 hits and release 6 letters. Unopened meteors leave at the end of the shower; released letters stay for their normal lifetime.</p><p>Starting 15 seconds into the round, a word bounty appears every 45 seconds. The first pilot to submit that exact word within its 30-second window earns the normal score plus 20 points. Only one pilot can claim each bounty, including in teams. Your once-per-match word rule still applies. Watch the strip above the arena for timers.</p></div><div class="help-note"><strong>Disruption, when enabled</strong><p>Three rival pulse contacts reset your ship for 3 seconds and drop up to 3 letters. Points stay. Dropped letters are immediately shared. Your ship returns with brief protection. Friendly fire is off.</p></div>
+    <p><strong>Your ship:</strong> Choose one of eight designs in the lobby, then ready up. Designs are cosmetic: speed, stability and letter collection reach are equal. The ring around each ship shows its pilot color in free-for-all or its team color in team mode. Your choice carries through reconnects and rematches.</p>
+    <p><strong>Controls:</strong> WASD/arrows to move. Hold Q to rotate counterclockwise or E to rotate clockwise through a full 360°. Move the mouse around your ship to aim freely; hold the left mouse button to pulse. On phones, the left stick moves and the right stick rotates/aims in any direction and pulses. Movement and aiming are independent. Shift or the BOOST button activates a dash. Enter submits the full tray or selected range; R shuffles; Backspace/Delete discards the selected or last tile; Space opens shielded review; Escape resumes flying. Drag tiles or tap two to swap. Use Select range for endpoints.</p>
+    <p class="muted">The game uses a bundled English dictionary with an offensive-word filter. Proper names and abbreviations are not intended; dictionary coverage may be imperfect. New players arriving mid-round watch until the next lobby.</p>
+    <p class="muted">Score = letter values + 2 × (word length − 3)². <a href="/credits.html">Dictionary & software credits ↗</a></p>
+  </dialog>
+</body>
+</html>
